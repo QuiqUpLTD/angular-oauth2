@@ -22,8 +22,10 @@
         return {
             request: function(config) {
                 if (OAuthToken.getAuthorizationHeader()) {
-                    config.headers = config.headers || {};
-                    config.headers.Authorization = OAuthToken.getAuthorizationHeader();
+                    if (config.url.indexOf(OAuthToken.token.targetUrl) !== -1) {
+                        config.headers = config.headers || {};
+                        config.headers.Authorization = OAuthToken.getAuthorizationHeader();
+                    }
                 }
                 return config;
             },
@@ -140,6 +142,7 @@
                                 }
                             };
                             return $http.post("" + config.baseUrl + "" + config.grantPath, data, options).then(function(response) {
+                                response.data.targetUrl = config.baseUrl;
                                 OAuthToken.token = response.data;
                                 return response;
                             });
