@@ -18,30 +18,6 @@
         $httpProvider.interceptors.push("oauthInterceptor");
     }
     oauthConfig.$inject = [ "$httpProvider" ];
-    function oauthInterceptor($q, $rootScope, OAuthToken) {
-        return {
-            request: function(config) {
-                if (OAuthToken.getAuthorizationHeader()) {
-                    if (config.url.indexOf(OAuthToken.token.targetUrl) !== -1) {
-                        config.headers = config.headers || {};
-                        config.headers.Authorization = OAuthToken.getAuthorizationHeader();
-                    }
-                }
-                return config;
-            },
-            responseError: function(rejection) {
-                if (400 === rejection.status && rejection.data && ("invalid_request" === rejection.data.error || "invalid_grant" === rejection.data.error)) {
-                    OAuthToken.removeToken();
-                    $rootScope.$emit("oauth:error", rejection);
-                }
-                if (401 === rejection.status && rejection.data && "invalid_token" === rejection.data.error) {
-                    $rootScope.$emit("oauth:error", rejection);
-                }
-                return $q.reject(rejection);
-            }
-        };
-    }
-    oauthInterceptor.$inject = [ "$q", "$rootScope", "OAuthToken" ];
     var _prototypeProperties = function(child, staticProps, instanceProps) {
         if (staticProps) Object.defineProperties(child, staticProps);
         if (instanceProps) Object.defineProperties(child.prototype, instanceProps);
@@ -117,6 +93,7 @@
                                 }
                             }, options);
                             return $http.post("" + config.baseUrl + "" + config.grantPath, data, options).then(function(response) {
+                                response.data.targetUrl = config.baseUrl;
                                 OAuthToken.token = response.data;
                                 return response;
                             });
@@ -317,5 +294,29 @@
         };
         this.$get.$inject = [ "ipCookie", "$window" ];
     }
+    function oauthInterceptor($q, $rootScope, OAuthToken) {
+        return {
+            request: function(config) {
+                if (OAuthToken.getAuthorizationHeader()) {
+                    if (config.url.indexOf(OAuthToken.token.targetUrl) !== -1) {
+                        config.headers = config.headers || {};
+                        config.headers.Authorization = OAuthToken.getAuthorizationHeader();
+                    }
+                }
+                return config;
+            },
+            responseError: function(rejection) {
+                if (400 === rejection.status && rejection.data && ("invalid_request" === rejection.data.error || "invalid_grant" === rejection.data.error)) {
+                    OAuthToken.removeToken();
+                    $rootScope.$emit("oauth:error", rejection);
+                }
+                if (401 === rejection.status && rejection.data && "invalid_token" === rejection.data.error) {
+                    $rootScope.$emit("oauth:error", rejection);
+                }
+                return $q.reject(rejection);
+            }
+        };
+    }
+    oauthInterceptor.$inject = [ "$q", "$rootScope", "OAuthToken" ];
     return ngModule;
 });

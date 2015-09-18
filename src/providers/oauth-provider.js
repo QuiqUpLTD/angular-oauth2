@@ -136,6 +136,7 @@ function OAuthProvider() {
         }, options);
 
         return $http.post(`${config.baseUrl}${config.grantPath}`, data, options).then((response) => {
+          response.data.targetUrl = config.baseUrl;
           OAuthToken.token = response.data;
 
           return response;
