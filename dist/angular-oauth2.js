@@ -179,8 +179,10 @@
         if (instanceProps) Object.defineProperties(child.prototype, instanceProps);
     };
     function OAuthTokenProvider() {
+        var storage;
         var config = {
             name: "token",
+            storage: "cookies",
             options: {
                 secure: true
             }
@@ -192,16 +194,16 @@
             angular.extend(config, params);
             return config;
         };
-        this.$get = function(ipCookie) {
+        this.$get = function(ipCookie, $window) {
             var OAuthToken = function() {
                 function OAuthToken() {}
                 _prototypeProperties(OAuthToken, null, {
                     token: {
                         set: function(data) {
-                            return ipCookie(config.name, data, config.options);
+                            return setToken(data);
                         },
                         get: function() {
-                            return ipCookie(config.name);
+                            return getToken();
                         },
                         enumerable: true,
                         configurable: true
@@ -242,9 +244,17 @@
                         configurable: true
                     },
                     removeToken: {
-                        value: function removeToken() {
-                            return ipCookie.remove(config.name, config.options);
-                        },
+                        value: function(_removeToken) {
+                            var _removeTokenWrapper = function removeToken() {
+                                return _removeToken.apply(this, arguments);
+                            };
+                            _removeTokenWrapper.toString = function() {
+                                return _removeToken.toString();
+                            };
+                            return _removeTokenWrapper;
+                        }(function() {
+                            return removeToken();
+                        }),
                         writable: true,
                         enumerable: true,
                         configurable: true
@@ -252,9 +262,57 @@
                 });
                 return OAuthToken;
             }();
+            var setToken = function(data) {
+                storage = config.storage.toLowerCase();
+                switch (storage) {
+                  case "cookies":
+                    return ipCookie(config.name, data, config.options);
+
+                  case "localstorage":
+                    return $window.localStorage.setItem(config.name, angular.toJson(data));
+
+                  case "sessionstorage":
+                    return $window.sessionStorage.setItem(config.name, angular.toJson(data));
+
+                  default:
+                    return ipCookie(config.name, data, config.options);
+                }
+            };
+            var getToken = function() {
+                storage = config.storage.toLowerCase();
+                switch (storage) {
+                  case "cookies":
+                    return ipCookie(config.name);
+
+                  case "localstorage":
+                    return angular.fromJson($window.localStorage.getItem(config.name));
+
+                  case "sessionstorage":
+                    return angular.fromJson($window.sessionStorage.getItem(config.name));
+
+                  default:
+                    return ipCookie(config.name);
+                }
+            };
+            var removeToken = function() {
+                storage = config.storage.toLowerCase();
+                switch (storage) {
+                  case "cookies":
+                    return ipCookie.remove(config.name, config.options);
+
+                  case "localstorage":
+                    return $window.localStorage.removeItem(config.name);
+
+                  case "sessionstorage":
+                    return $window.sessionStorage.removeItem(config.name);
+
+                  default:
+                    return ipCookie.remove(config.name, config.options);
+                }
+            };
             return new OAuthToken();
         };
-        this.$get.$inject = [ "ipCookie" ];
+        this.$get.$inject = [ "ipCookie", "$window" ];
     }
     return ngModule;
 });
