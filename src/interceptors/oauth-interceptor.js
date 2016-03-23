@@ -10,7 +10,7 @@ function oauthInterceptor($q, $rootScope, OAuthToken) {
     request: function(config) {
       // Inject `Authorization` header.
       if (OAuthToken.getAuthorizationHeader()) {
-        if(config.url.indexOf(OAuthToken.token.targetUrl) !== -1){
+        if (config.url.indexOf(OAuthToken.token.targetUrl) !== -1 && config.url.indexOf('/oauth/token') === -1 || config.url.indexOf('/oauth/token') !== -1 && config.method !== 'POST') {
           config.headers = config.headers || {};
           config.headers.Authorization = OAuthToken.getAuthorizationHeader();
         }
